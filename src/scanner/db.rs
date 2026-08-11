@@ -155,7 +155,7 @@ pub(super) async fn build_pending_book_insert(
     } else {
         meta.title.clone()
     };
-    let search_title = title.to_uppercase();
+    let search_title = crate::util::normalize_search_title(&title);
     let lang_code = detect_lang_code(&title);
     let annotation: String = meta
         .annotation

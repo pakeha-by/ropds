@@ -888,7 +888,7 @@ async fn build_search_books_feed(
             // search so the configured PrefixMode applies; otherwise the
             // first-word-only setting would silently widen back to a
             // substring search.
-            let search_term = terms.to_uppercase();
+            let search_term = crate::util::normalize_search_title(terms);
             let mode = PrefixMode::from_first_word_only(state.config.opds.alphabet_first_word_only);
             books::search_by_title_prefix(
                 &state.db,
@@ -903,7 +903,7 @@ async fn build_search_books_feed(
         }
         _ => {
             // Title search: m=contains, e=exact.
-            let search_term = terms.to_uppercase();
+            let search_term = crate::util::normalize_search_title(terms);
             books::search_by_title(&state.db, &search_term, max_items, offset, hide_doubles)
                 .await
                 .unwrap_or_default()

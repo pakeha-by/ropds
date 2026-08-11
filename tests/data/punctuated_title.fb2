@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0"
+             xmlns:l="http://www.w3.org/1999/xlink">
+  <description>
+    <title-info>
+      <genre>sf</genre>
+      <author>
+        <first-name>Пётр</first-name>
+        <last-name>Иванов</last-name>
+      </author>
+      <book-title>Сборник: «Мир приключений» 1963 (№09)</book-title>
+      <lang>ru</lang>
+    </title-info>
+    <document-info>
+      <date>2025-01-01</date>
+    </document-info>
+  </description>
+  <body>
+    <section>
+      <title><p>Предисловие</p></title>
+      <p>Заголовок содержит кавычки, скобки и номерной знак.</p>
+    </section>
+  </body>
+</FictionBook>

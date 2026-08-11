@@ -21,7 +21,7 @@ async fn seed_book(pool: &DbPool, title: &str) {
         .fetch_one(pool.inner())
         .await
         .unwrap();
-    let search_title = title.to_uppercase();
+    let search_title = ropds::util::normalize_search_title(title);
     let sql = pool.sql(
         "INSERT INTO books (catalog_id, filename, path, format, title, search_title, \
          lang, lang_code, size, avail, cat_type, cover, cover_type) \
@@ -236,6 +236,129 @@ async fn browse_books_cyrillic() {
         html2.contains("Тайна старого дома") || html2.contains("ТА"),
         "should show Cyrillic books or sub-groups starting with Т"
     );
+}
+
+/// Pull the (prefix, count) pairs out of a rendered `web/browse.html` grid.
+fn parse_prefix_tiles(html: &str) -> Vec<(String, i64)> {
+    let mut tiles = Vec::new();
+    for chunk in html.split("<div class=\"fw-semibold\">").skip(1) {
+        let Some((prefix, rest)) = chunk.split_once("</div>") else {
+            continue;
+        };
+        let Some(count) = rest
+            .split_once("<small class=\"text-body-secondary\">")
+            .and_then(|(_, r)| r.split_once("</small>"))
+            .and_then(|(c, _)| c.trim().parse::<i64>().ok())
+        else {
+            continue;
+        };
+        tiles.push((prefix.trim().to_string(), count));
+    }
+    tiles
+}
+
+/// Titles carry quotes, brackets and number signs; the alphabet grid must not.
+/// `Сборник: «Мир приключений» 1963 (№09)` used to contribute `«` and `(` tiles
+/// because the grid takes the first char of every word of `search_title`.
+#[tokio::test]
+async fn browse_books_grid_has_no_punctuation_tiles() {
+    let _lock = SCAN_MUTEX.lock().await;
+
+    let pool = db::create_test_pool().await;
+    let lib_dir = tempfile::tempdir().unwrap();
+    let covers_dir = tempfile::tempdir().unwrap();
+    let config = test_config(lib_dir.path(), covers_dir.path());
+
+    copy_test_files(lib_dir.path(), &["punctuated_title.fb2"]);
+    scanner::run_scan(&pool, &config, false).await.unwrap();
+
+    let state = test_app_state(pool.clone(), config.clone());
+    let resp = get(test_router(state.clone()), "/web/books?lang=1").await;
+    assert_eq!(resp.status(), 200);
+    let tiles = parse_prefix_tiles(&body_string(resp).await);
+
+    assert!(!tiles.is_empty(), "expected some alphabet tiles");
+    for (prefix, _) in &tiles {
+        let first = prefix.chars().next().expect("tile prefix must not be empty");
+        assert!(
+            first.is_alphanumeric(),
+            "tile {prefix:?} starts with a non-alphanumeric char"
+        );
+    }
+
+    // «Мир now buckets under М rather than under «.
+    assert!(
+        tiles.iter().any(|(p, _)| p == "М"),
+        "expected an 'М' tile from «Мир приключений», got {tiles:?}"
+    );
+}
+
+/// The count shown on a tile must match the number of books the tile links to.
+/// This is the invariant that breaks if the grid is normalised in Rust without
+/// normalising the `search_title` column the SQL `LIKE` runs against.
+#[tokio::test]
+async fn browse_books_tile_count_matches_search_results() {
+    let _lock = SCAN_MUTEX.lock().await;
+
+    let pool = db::create_test_pool().await;
+    let lib_dir = tempfile::tempdir().unwrap();
+    let covers_dir = tempfile::tempdir().unwrap();
+    let config = test_config(lib_dir.path(), covers_dir.path());
+
+    copy_test_files(lib_dir.path(), &["punctuated_title.fb2", "cyrillic_book.fb2"]);
+    scanner::run_scan(&pool, &config, false).await.unwrap();
+
+    let state = test_app_state(pool.clone(), config.clone());
+    let resp = get(test_router(state.clone()), "/web/books?lang=1").await;
+    let tiles = parse_prefix_tiles(&body_string(resp).await);
+
+    let (_, m_count) = tiles
+        .iter()
+        .find(|(p, _)| p == "М")
+        .expect("expected an 'М' tile");
+
+    let hits = ropds::db::queries::books::count_by_title_prefix(
+        &pool,
+        "М",
+        config.opds.hide_doubles,
+        ropds::db::queries::PrefixMode::from_first_word_only(
+            config.opds.alphabet_first_word_only,
+        ),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(
+        *m_count, hits,
+        "tile count and results-page count disagree for 'М'"
+    );
+}
+
+/// Free-text search normalises the user's term the same way, so a query that
+/// still carries the original punctuation keeps matching.
+#[tokio::test]
+async fn search_books_matches_despite_punctuation_in_query() {
+    let _lock = SCAN_MUTEX.lock().await;
+
+    let pool = db::create_test_pool().await;
+    let lib_dir = tempfile::tempdir().unwrap();
+    let covers_dir = tempfile::tempdir().unwrap();
+    let config = test_config(lib_dir.path(), covers_dir.path());
+
+    copy_test_files(lib_dir.path(), &["punctuated_title.fb2"]);
+    scanner::run_scan(&pool, &config, false).await.unwrap();
+
+    let state = test_app_state(pool.clone(), config.clone());
+    for query in ["«Мир", "Мир приключений»", "мир приключений"] {
+        let url = format!("/web/search/books?q={}", urlencoding::encode(query));
+        let resp = get(test_router(state.clone()), &url).await;
+        assert_eq!(resp.status(), 200, "query {query:?}");
+        let html = body_string(resp).await;
+        assert!(
+            html.contains("Мир приключений"),
+            "query {query:?} should still find the book"
+        );
+    }
 }
 
 /// Browse digit-prefixed books (lang_code=3).

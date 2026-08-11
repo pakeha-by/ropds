@@ -281,7 +281,7 @@ pub async fn insert_book_with_meta(
     } else {
         meta.title.clone()
     };
-    let search_title = title.to_uppercase();
+    let search_title = crate::util::normalize_search_title(&title);
     let lang = &meta.lang;
     let lang_code = detect_lang_code(&title);
     let has_cover = if meta.cover_data.is_some() { 1 } else { 0 };

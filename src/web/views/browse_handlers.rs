@@ -400,7 +400,7 @@ pub async fn search_books(
             (bks, cnt)
         }
         "b" => {
-            let term = params.q.to_uppercase();
+            let term = crate::util::normalize_search_title(&params.q);
             let mode = PrefixMode::from_first_word_only(state.config.opds.alphabet_first_word_only);
             let bks = books::search_by_title_prefix(
                 &state.db,
@@ -434,7 +434,7 @@ pub async fn search_books(
             (bks, cnt)
         }
         _ => {
-            let term = params.q.to_uppercase();
+            let term = crate::util::normalize_search_title(&params.q);
             let bks = books::search_by_title(&state.db, &term, max_items, offset, hide_doubles)
                 .await
                 .unwrap_or_default();
@@ -522,7 +522,7 @@ pub async fn books_browse(
     let mut ctx = build_context(&state, &jar, "books").await;
     let split_items = state.config.opds.split_items as i64;
 
-    let prefix = params.chars.to_uppercase();
+    let prefix = crate::util::normalize_search_title(&params.chars);
     let mode = PrefixMode::from_first_word_only(state.config.opds.alphabet_first_word_only);
     let groups = books::get_title_prefix_groups(&state.db, params.lang, &prefix, mode)
         .await
