@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0"
+             xmlns:l="http://www.w3.org/1999/xlink">
+  <description>
+    <title-info>
+      <genre>sf</genre>
+      <author>
+        <first-name>Flann</first-name>
+        <last-name>O'Brien</last-name>
+      </author>
+      <book-title>Punctuated Names Sample</book-title>
+      <lang>en</lang>
+      <sequence name="Sea-Chronicles (Vol.2)" number="2"/>
+    </title-info>
+    <document-info>
+      <date>2025-01-01</date>
+    </document-info>
+  </description>
+  <body>
+    <section>
+      <p>Author last name and series name both carry punctuation.</p>
+    </section>
+  </body>
+</FictionBook>

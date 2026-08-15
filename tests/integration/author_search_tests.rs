@@ -117,6 +117,61 @@ async fn browse_cyrillic_authors() {
     );
 }
 
+/// Author names carrying punctuation (e.g. an apostrophe) normalize the same
+/// way on insert and on search, so a query that still carries the original
+/// punctuation — or drops it entirely — keeps matching. Mirrors the
+/// book-title punctuation coverage in `book_search_tests.rs`.
+#[tokio::test]
+async fn search_authors_matches_despite_punctuation_in_query() {
+    let _lock = SCAN_MUTEX.lock().await;
+    let pool = db::create_test_pool().await;
+    let lib_dir = tempfile::tempdir().unwrap();
+    let covers_dir = tempfile::tempdir().unwrap();
+    let config = test_config(lib_dir.path(), covers_dir.path());
+
+    copy_test_files(lib_dir.path(), &["punctuated_author_series.fb2"]);
+    scanner::run_scan(&pool, &config, false).await.unwrap();
+
+    let state = test_app_state(pool.clone(), config.clone());
+    for query in ["O'Brien", "OBrien", "o brien"] {
+        let url = format!(
+            "/web/search/authors?type=m&q={}",
+            urlencoding::encode(query)
+        );
+        let resp = get(test_router(state.clone()), &url).await;
+        assert_eq!(resp.status(), 200, "query {query:?}");
+        let html = body_string(resp).await;
+        assert!(
+            html.contains("Brien"),
+            "query {query:?} should still find the author"
+        );
+    }
+}
+
+/// The alphabet grid on `/web/authors` buckets by normalised
+/// `search_full_name`, so a last name starting with punctuation-adjacent
+/// text still lands under a real letter tile, not a punctuation tile.
+#[tokio::test]
+async fn browse_authors_grid_has_no_punctuation_tiles() {
+    let _lock = SCAN_MUTEX.lock().await;
+    let pool = db::create_test_pool().await;
+    let lib_dir = tempfile::tempdir().unwrap();
+    let covers_dir = tempfile::tempdir().unwrap();
+    let config = test_config(lib_dir.path(), covers_dir.path());
+
+    copy_test_files(lib_dir.path(), &["punctuated_author_series.fb2"]);
+    scanner::run_scan(&pool, &config, false).await.unwrap();
+
+    let state = test_app_state(pool.clone(), config.clone());
+    let resp = get(test_router(state.clone()), "/web/authors?lang=2").await;
+    assert_eq!(resp.status(), 200);
+    let html = body_string(resp).await;
+    assert!(
+        html.contains(">O<"),
+        "expected an 'O' tile from O'Brien, got: {html}"
+    );
+}
+
 /// OPDS authors drill-down returns prefix groups.
 #[tokio::test]
 async fn opds_authors_drill_down() {

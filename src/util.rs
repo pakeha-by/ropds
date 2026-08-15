@@ -17,11 +17,13 @@ pub fn slugify_username(name: &str) -> String {
     }
 }
 
-/// Normalise a book title into the form stored in `books.search_title`.
+/// Normalise text into the form stored in a `search_*` column
+/// (`books.search_title`, `authors.search_full_name`, `series.search_ser`).
 ///
-/// `search_title` is a derived column: it is never displayed (templates render
-/// `books.title`), it backs the `LIKE` prefix/substring searches, and its
-/// whitespace-separated words feed the alphabet grid on `/web/books`. Keeping
+/// These are derived columns: they are never displayed (templates render the
+/// original `title`/`full_name`/`ser_name`), they back the `LIKE`
+/// prefix/substring searches, and their whitespace-separated words feed the
+/// alphabet grids on `/web/books`, `/web/authors` and `/web/series`. Keeping
 /// only alphanumerics means the grid shows letters and digits instead of the
 /// quotes, brackets and dashes that titles like `«Мир приключений» (№09)` would
 /// otherwise contribute.
@@ -36,7 +38,7 @@ pub fn slugify_username(name: &str) -> String {
 ///
 /// Accepted edge cases: `O'BRIEN` becomes `O BRIEN`, and decomposed sequences
 /// (e.g. `Е` + U+0308 rather than `Ё`) split at the combining mark.
-pub fn normalize_search_title(title: &str) -> String {
+pub fn normalize_search_text(title: &str) -> String {
     let mut out = String::with_capacity(title.len());
     let mut pending_space = false;
     for ch in title.chars() {
@@ -65,42 +67,42 @@ mod tests {
     }
 
     #[test]
-    fn normalize_search_title_strips_punctuation_and_uppercases() {
+    fn normalize_search_text_strips_punctuation_and_uppercases() {
         assert_eq!(
-            normalize_search_title("«Мир приключений» 1963 (№09)"),
+            normalize_search_text("«Мир приключений» 1963 (№09)"),
             "МИР ПРИКЛЮЧЕНИЙ 1963 09"
         );
-        assert_eq!(normalize_search_title("\"Тихий Дон\""), "ТИХИЙ ДОН");
+        assert_eq!(normalize_search_text("\"Тихий Дон\""), "ТИХИЙ ДОН");
     }
 
     #[test]
-    fn normalize_search_title_splits_on_hyphen_instead_of_joining() {
-        assert_eq!(normalize_search_title("Альфа-Бета"), "АЛЬФА БЕТА");
-        assert_eq!(normalize_search_title("O'Brien"), "O BRIEN");
+    fn normalize_search_text_splits_on_hyphen_instead_of_joining() {
+        assert_eq!(normalize_search_text("Альфа-Бета"), "АЛЬФА БЕТА");
+        assert_eq!(normalize_search_text("O'Brien"), "O BRIEN");
     }
 
     #[test]
-    fn normalize_search_title_keeps_digits() {
-        assert_eq!(normalize_search_title("1984"), "1984");
-        assert_eq!(normalize_search_title("451 градус"), "451 ГРАДУС");
+    fn normalize_search_text_keeps_digits() {
+        assert_eq!(normalize_search_text("1984"), "1984");
+        assert_eq!(normalize_search_text("451 градус"), "451 ГРАДУС");
     }
 
     #[test]
-    fn normalize_search_title_collapses_whitespace_and_trims() {
-        assert_eq!(normalize_search_title("  Война   и  мир  "), "ВОЙНА И МИР");
-        assert_eq!(normalize_search_title(""), "");
-        assert_eq!(normalize_search_title("!!!"), "");
+    fn normalize_search_text_collapses_whitespace_and_trims() {
+        assert_eq!(normalize_search_text("  Война   и  мир  "), "ВОЙНА И МИР");
+        assert_eq!(normalize_search_text(""), "");
+        assert_eq!(normalize_search_text("!!!"), "");
     }
 
     #[test]
-    fn normalize_search_title_drops_control_and_format_chars() {
+    fn normalize_search_text_drops_control_and_format_chars() {
         // Both occur in real scanned titles: U+0004 and a soft hyphen.
-        assert_eq!(normalize_search_title("\u{0004}Тайна"), "ТАЙНА");
-        assert_eq!(normalize_search_title("Биб\u{00ad}лиотека"), "БИБ ЛИОТЕКА");
+        assert_eq!(normalize_search_text("\u{0004}Тайна"), "ТАЙНА");
+        assert_eq!(normalize_search_text("Биб\u{00ad}лиотека"), "БИБ ЛИОТЕКА");
     }
 
     #[test]
-    fn normalize_search_title_is_idempotent() {
+    fn normalize_search_text_is_idempotent() {
         for input in [
             "«Мир приключений» 1963 (№09)",
             "  Война   и  мир  ",
@@ -108,8 +110,8 @@ mod tests {
             "1984",
             "!!!",
         ] {
-            let once = normalize_search_title(input);
-            assert_eq!(normalize_search_title(&once), once, "input: {input}");
+            let once = normalize_search_text(input);
+            assert_eq!(normalize_search_text(&once), once, "input: {input}");
         }
     }
 }

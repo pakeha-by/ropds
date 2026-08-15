@@ -44,7 +44,7 @@ async fn insert_dup_book(pool: &DbPool, title: &str, search_title: &str, filenam
 }
 
 async fn insert_author(pool: &DbPool, name: &str) -> i64 {
-    let search = name.to_uppercase();
+    let search = ropds::util::normalize_search_text(name);
     let sql =
         pool.sql("INSERT INTO authors (full_name, search_full_name, lang_code) VALUES (?, ?, 2)");
     sqlx::query(&sql)

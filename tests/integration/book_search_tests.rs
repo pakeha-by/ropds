@@ -21,7 +21,7 @@ async fn seed_book(pool: &DbPool, title: &str) {
         .fetch_one(pool.inner())
         .await
         .unwrap();
-    let search_title = ropds::util::normalize_search_title(title);
+    let search_title = ropds::util::normalize_search_text(title);
     let sql = pool.sql(
         "INSERT INTO books (catalog_id, filename, path, format, title, search_title, \
          lang, lang_code, size, avail, cat_type, cover, cover_type) \

@@ -119,6 +119,37 @@ async fn browse_cyrillic_series() {
     );
 }
 
+/// Series names carrying punctuation (hyphens, parentheses) normalize the
+/// same way on insert and on search, so a query that still carries the
+/// original punctuation — or drops it entirely — keeps matching. Mirrors the
+/// book-title punctuation coverage in `book_search_tests.rs`.
+#[tokio::test]
+async fn search_series_matches_despite_punctuation_in_query() {
+    let _lock = SCAN_MUTEX.lock().await;
+    let pool = db::create_test_pool().await;
+    let lib_dir = tempfile::tempdir().unwrap();
+    let covers_dir = tempfile::tempdir().unwrap();
+    let config = test_config(lib_dir.path(), covers_dir.path());
+
+    copy_test_files(lib_dir.path(), &["punctuated_author_series.fb2"]);
+    scanner::run_scan(&pool, &config, false).await.unwrap();
+
+    let state = test_app_state(pool.clone(), config.clone());
+    for query in ["Sea-Chronicles", "Sea Chronicles (Vol.2)", "sea chronicles"] {
+        let url = format!(
+            "/web/search/series?type=m&q={}",
+            urlencoding::encode(query)
+        );
+        let resp = get(test_router(state.clone()), &url).await;
+        assert_eq!(resp.status(), 200, "query {query:?}");
+        let html = body_string(resp).await;
+        assert!(
+            html.contains("Sea-Chronicles"),
+            "query {query:?} should still find the series"
+        );
+    }
+}
+
 /// OPDS series drill-down returns prefix groups.
 #[tokio::test]
 async fn opds_series_drill_down() {

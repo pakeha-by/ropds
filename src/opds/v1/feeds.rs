@@ -354,10 +354,14 @@ pub async fn authors_feed(
     let _ = fb.write_search_links("/opds/search/", "/opds/search/{searchTerms}/");
 
     let mode = PrefixMode::from_first_word_only(state.config.opds.alphabet_first_word_only);
-    let groups =
-        authors::get_name_prefix_groups(&state.db, lang_code, &prefix.to_uppercase(), mode)
-            .await
-            .unwrap_or_default();
+    let groups = authors::get_name_prefix_groups(
+        &state.db,
+        lang_code,
+        &crate::util::normalize_search_text(&prefix),
+        mode,
+    )
+    .await
+    .unwrap_or_default();
 
     for (prefix_str, count) in &groups {
         if *count >= split_items {
@@ -424,7 +428,7 @@ pub async fn authors_list(
     let author_list = authors::get_by_lang_code_prefix(
         &state.db,
         lang_code,
-        &prefix.to_uppercase(),
+        &crate::util::normalize_search_text(&prefix),
         max_items,
         offset,
         mode,
@@ -514,9 +518,14 @@ pub async fn series_feed(
     let _ = fb.write_search_links("/opds/search/", "/opds/search/{searchTerms}/");
 
     let mode = PrefixMode::from_first_word_only(state.config.opds.alphabet_first_word_only);
-    let groups = series::get_name_prefix_groups(&state.db, lang_code, &prefix.to_uppercase(), mode)
-        .await
-        .unwrap_or_default();
+    let groups = series::get_name_prefix_groups(
+        &state.db,
+        lang_code,
+        &crate::util::normalize_search_text(&prefix),
+        mode,
+    )
+    .await
+    .unwrap_or_default();
 
     for (prefix_str, count) in &groups {
         if *count >= split_items {
@@ -583,7 +592,7 @@ pub async fn series_list(
     let series_list = series::get_by_lang_code_prefix(
         &state.db,
         lang_code,
-        &prefix.to_uppercase(),
+        &crate::util::normalize_search_text(&prefix),
         max_items,
         offset,
         mode,
@@ -827,7 +836,7 @@ pub async fn books_feed(
     let _ = fb.write_search_links("/opds/search/", "/opds/search/{searchTerms}/");
 
     let mode = PrefixMode::from_first_word_only(state.config.opds.alphabet_first_word_only);
-    let normalized = crate::util::normalize_search_title(&prefix);
+    let normalized = crate::util::normalize_search_text(&prefix);
     let groups = books::get_title_prefix_groups(&state.db, lang_code, &normalized, mode)
         .await
         .unwrap_or_default();
@@ -1054,7 +1063,7 @@ pub async fn search_books_feed(
             // search so the configured PrefixMode applies; otherwise the
             // first-word-only setting would silently widen back to a
             // substring search.
-            let search_term = crate::util::normalize_search_title(terms);
+            let search_term = crate::util::normalize_search_text(terms);
             let mode = PrefixMode::from_first_word_only(state.config.opds.alphabet_first_word_only);
             books::search_by_title_prefix(
                 &state.db,
@@ -1069,7 +1078,7 @@ pub async fn search_books_feed(
         }
         _ => {
             // Title search: m=contains, e=exact.
-            let search_term = crate::util::normalize_search_title(terms);
+            let search_term = crate::util::normalize_search_text(terms);
             books::search_by_title(&state.db, &search_term, max_items, offset, hide_doubles)
                 .await
                 .unwrap_or_default()
@@ -1140,7 +1149,7 @@ pub async fn search_authors_feed(
     );
     let _ = fb.write_search_links("/opds/search/", "/opds/search/{searchTerms}/");
 
-    let search_term = terms.to_uppercase();
+    let search_term = crate::util::normalize_search_text(terms);
     let author_list = authors::search_by_name(&state.db, &search_term, max_items, offset)
         .await
         .unwrap_or_default();
@@ -1211,7 +1220,7 @@ pub async fn search_series_feed(
     );
     let _ = fb.write_search_links("/opds/search/", "/opds/search/{searchTerms}/");
 
-    let search_term = terms.to_uppercase();
+    let search_term = crate::util::normalize_search_text(terms);
     let series_list = series::search_by_name(&state.db, &search_term, max_items, offset)
         .await
         .unwrap_or_default();

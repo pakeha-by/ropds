@@ -1027,7 +1027,7 @@ mod tests {
     }
 
     async fn insert_test_book(pool: &DbPool, catalog_id: i64, title: &str, lang_code: i32) -> i64 {
-        let search_title = title.to_uppercase();
+        let search_title = crate::util::normalize_search_text(title);
         insert(
             pool,
             catalog_id,
@@ -1080,7 +1080,7 @@ mod tests {
     }
 
     async fn insert_test_author(pool: &DbPool, full_name: &str) -> i64 {
-        let search_name = full_name.to_uppercase();
+        let search_name = crate::util::normalize_search_text(full_name);
         let sql = pool
             .sql("INSERT INTO authors (full_name, search_full_name, lang_code) VALUES (?, ?, ?)");
         sqlx::query(&sql)
@@ -1100,7 +1100,7 @@ mod tests {
     }
 
     async fn insert_test_series(pool: &DbPool, ser_name: &str) -> i64 {
-        let search_name = ser_name.to_uppercase();
+        let search_name = crate::util::normalize_search_text(ser_name);
         let sql = pool.sql("INSERT INTO series (ser_name, search_ser, lang_code) VALUES (?, ?, ?)");
         sqlx::query(&sql)
             .bind(ser_name)

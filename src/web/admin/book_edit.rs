@@ -253,7 +253,7 @@ pub async fn series_search(
     State(state): State<AppState>,
     Query(params): Query<SeriesSearchQuery>,
 ) -> Response {
-    let term = params.q.trim().to_uppercase();
+    let term = crate::util::normalize_search_text(params.q.trim());
     if term.len() < 2 {
         return axum::Json(serde_json::json!({"ok": true, "series": []})).into_response();
     }
@@ -314,7 +314,7 @@ pub async fn update_book_title(
             .into_response();
     }
 
-    let search_title = crate::util::normalize_search_title(&title);
+    let search_title = crate::util::normalize_search_text(&title);
     let lang_code = crate::scanner::parsers::detect_lang_code(&title);
     match crate::db::queries::books::update_title(
         &state.db,

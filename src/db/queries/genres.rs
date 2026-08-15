@@ -531,7 +531,7 @@ mod tests {
             "/genres-test",
             "fb2",
             filename,
-            &filename.to_uppercase(),
+            &crate::util::normalize_search_text(filename),
             "",
             "",
             "en",

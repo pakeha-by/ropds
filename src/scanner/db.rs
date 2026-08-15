@@ -76,7 +76,7 @@ pub async fn ensure_author(pool: &DbPool, full_name: &str) -> Result<i64, ScanEr
     if let Some(a) = authors::find_by_name(pool, full_name).await? {
         return Ok(a.id);
     }
-    let search = full_name.to_uppercase();
+    let search = crate::util::normalize_search_text(full_name);
     let lang_code = detect_lang_code(full_name);
     let id = authors::insert(pool, full_name, &search, lang_code).await?;
     Ok(id)
@@ -87,7 +87,7 @@ pub async fn ensure_series(pool: &DbPool, ser_name: &str) -> Result<i64, ScanErr
     if let Some(s) = series::find_by_name(pool, ser_name).await? {
         return Ok(s.id);
     }
-    let search = ser_name.to_uppercase();
+    let search = crate::util::normalize_search_text(ser_name);
     let lang_code = detect_lang_code(ser_name);
     let id = series::insert(pool, ser_name, &search, lang_code).await?;
     Ok(id)
@@ -155,7 +155,7 @@ pub(super) async fn build_pending_book_insert(
     } else {
         meta.title.clone()
     };
-    let search_title = crate::util::normalize_search_title(&title);
+    let search_title = crate::util::normalize_search_text(&title);
     let lang_code = detect_lang_code(&title);
     let annotation: String = meta
         .annotation

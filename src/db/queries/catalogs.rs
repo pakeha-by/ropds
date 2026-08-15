@@ -129,7 +129,7 @@ mod tests {
     use crate::db::create_test_pool;
 
     async fn insert_test_book(pool: &DbPool, catalog_id: i64, title: &str, avail: i32) -> i64 {
-        let search_title = crate::util::normalize_search_title(title);
+        let search_title = crate::util::normalize_search_text(title);
         let sql = pool.sql(
             "INSERT INTO books (catalog_id, filename, path, format, title, search_title, \
              lang, lang_code, size, avail, cat_type, cover, cover_type) \

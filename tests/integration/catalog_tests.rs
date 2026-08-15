@@ -25,7 +25,7 @@ async fn insert_cat(pool: &DbPool, parent_id: Option<i64>, path: &str, cat_name:
 
 /// Insert a minimal book row tied to the given catalog.
 async fn insert_book_in_cat(pool: &DbPool, catalog_id: i64, title: &str) {
-    let search_title = title.to_uppercase();
+    let search_title = ropds::util::normalize_search_text(title);
     let sql = pool.sql(
         "INSERT INTO books (catalog_id, filename, path, format, title, search_title, \
          lang, lang_code, size, avail, cat_type, cover, cover_type) \
