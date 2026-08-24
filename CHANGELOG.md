@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.1] - 2026-08-24
+
+### Fixed
+- Several Simplified Chinese genre names were inaccurate or read as literal word-for-word translations. They are now corrected, and existing libraries pick up the new names automatically on the next start.
+
 ## [0.13.0] - 2026-08-24
 
 ### Added
