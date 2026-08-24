@@ -1,4 +1,4 @@
--- Chinese translations for genre sections and genres.
+-- Simplified Chinese translations for genre sections and genres.
 -- Section IDs match genre_sections (1-22), genre IDs match genres (1-228).
 
 INSERT INTO genre_section_translations (section_id, lang, name) VALUES
@@ -14,7 +14,7 @@ INSERT INTO genre_section_translations (section_id, lang, name) VALUES
     (10, 'zh', '科学与教育'),
     (11, 'zh', '诗歌'),
     (12, 'zh', '冒险'),
-    (13, 'zh', '散文'),
+    (13, 'zh', '小说'),
     (14, 'zh', '其他'),
     (15, 'zh', '宗教、灵性与神秘学'),
     (16, 'zh', '工具书'),
@@ -101,7 +101,7 @@ INSERT INTO genre_translations (genre_id, lang, name) VALUES
     (65, 'zh', '外国儿童文学'),
     (66, 'zh', '儿童游戏与活动'),
     (67, 'zh', '经典儿童文学'),
-    (68, 'zh', '儿童散文'),
+    (68, 'zh', '儿童小说'),
     (69, 'zh', '俄罗斯童话'),
     (70, 'zh', '世界童话'),
     (71, 'zh', '儿童诗歌'),
@@ -168,27 +168,27 @@ INSERT INTO genre_translations (genre_id, lang, name) VALUES
     (128, 'zh', '自然与动物'),
     (129, 'zh', '旅行与地理'),
     (130, 'zh', '骑士传奇'),
-    -- 13. Prose (散文)
+    -- 13. Prose (小说)
     (131, 'zh', '格言与引语'),
     (132, 'zh', '哥特小说'),
-    (133, 'zh', '外国经典散文'),
-    (134, 'zh', '历史散文'),
-    (135, 'zh', '经典散文'),
-    (136, 'zh', '17–18世纪经典散文'),
-    (137, 'zh', '19世纪经典散文'),
-    (138, 'zh', '20世纪经典散文'),
+    (133, 'zh', '外国经典小说'),
+    (134, 'zh', '历史小说'),
+    (135, 'zh', '经典小说'),
+    (136, 'zh', '17–18世纪经典小说'),
+    (137, 'zh', '19世纪经典小说'),
+    (138, 'zh', '20世纪经典小说'),
     (139, 'zh', '反文化'),
     (140, 'zh', '魔幻现实主义'),
     (141, 'zh', '短篇小说、随笔、中篇小说'),
-    (142, 'zh', '散文'),
-    (143, 'zh', '战争散文'),
+    (142, 'zh', '小说'),
+    (143, 'zh', '战争小说'),
     (144, 'zh', '长篇小说与中篇小说'),
-    (145, 'zh', '俄罗斯经典散文'),
-    (146, 'zh', '苏联经典散文'),
-    (147, 'zh', '当代俄罗斯与外国散文'),
-    (148, 'zh', '中世纪经典散文'),
-    (149, 'zh', '幻想与荒诞散文'),
-    (150, 'zh', '实验散文'),
+    (145, 'zh', '俄罗斯经典小说'),
+    (146, 'zh', '苏联经典小说'),
+    (147, 'zh', '当代俄罗斯与外国小说'),
+    (148, 'zh', '中世纪经典小说'),
+    (149, 'zh', '幻想与荒诞小说'),
+    (150, 'zh', '实验小说'),
     (151, 'zh', '书信体小说'),
     -- 14. Other (其他)
     (152, 'zh', '杂志与报纸'),
@@ -275,4 +275,4 @@ INSERT INTO genre_translations (genre_id, lang, name) VALUES
     (225, 'zh', '笑话与轶事'),
     (226, 'zh', '讽刺'),
     (227, 'zh', '幽默'),
-    (228, 'zh', '幽默散文');
+    (228, 'zh', '幽默小说');
