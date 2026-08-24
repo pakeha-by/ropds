@@ -8,7 +8,6 @@ use tracing_subscriber::fmt::writer::MakeWriterExt;
 use ropds::build_router;
 use ropds::config::Config;
 use ropds::state::AppState;
-use ropds::web::context;
 
 #[derive(Parser)]
 #[command(name = "ropds", version, about = "Rust OPDS Server")]
@@ -246,11 +245,10 @@ async fn main() {
     }
 
     // Initialize Tera templates
-    let mut tera = ropds::assets::load_templates().unwrap_or_else(|e| {
+    let tera = ropds::assets::load_templates().unwrap_or_else(|e| {
         tracing::error!("Failed to load templates: {e}");
         std::process::exit(1);
     });
-    context::register_filters(&mut tera);
     tracing::info!("Templates loaded");
 
     // Load translations

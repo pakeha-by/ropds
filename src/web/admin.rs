@@ -94,11 +94,10 @@ fn format_uptime(total_secs: u64, ctx: &tera::Context) -> String {
     let minutes = (total_secs % 3600) / 60;
 
     // Extract translation keys from context (t.admin.uptime_days, etc.)
-    let t = ctx.get("t").and_then(|v| v.as_object());
-    let admin = t.and_then(|t| t.get("admin")).and_then(|v| v.as_object());
+    let t = ctx.get("t");
     let label = |key: &str, fallback: &str| -> String {
-        admin
-            .and_then(|a| a.get(key))
+        let path = format!("admin.{key}");
+        t.and_then(|t| t.get_from_path(&path))
             .and_then(|v| v.as_str())
             .unwrap_or(fallback)
             .to_string()

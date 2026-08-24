@@ -11,7 +11,7 @@
   <link href="/static/css/bootstrap.min.css" rel="stylesheet">
   <link href="/static/css/bootstrap-icons.min.css" rel="stylesheet">
   <link href="/static/css/ropds.css?v={{ version }}" rel="stylesheet">
-  <script>window.ROpdsAppVersion = {{ version | json_encode | safe }};</script>
+  <script>window.ROpdsAppVersion = "{{ version }}";</script>
   <script src="/static/js/ropds.js?v={{ version }}"></script>
 </head>
 <body>
@@ -250,7 +250,7 @@
               </a>
               {% if random_book.authors | length > 0 %}
               <div class="text-body-secondary">
-                {{ random_book.authors | map(attribute="full_name") | join(sep=", ") }}
+                {% for author in random_book.authors %}{{ author.full_name }}{% if not loop.last %}, {% endif %}{% endfor %}
               </div>
               {% endif %}
             </div>

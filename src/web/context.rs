@@ -196,19 +196,15 @@ pub fn register_filters(tera: &mut tera::Tera) {
 }
 
 /// Tera filter: format bytes as human-readable file size.
-fn filesizeformat(
-    value: &tera::Value,
-    _args: &std::collections::HashMap<String, tera::Value>,
-) -> tera::Result<tera::Value> {
+fn filesizeformat(value: &tera::Value, _kwargs: tera::Kwargs, _state: &tera::State) -> String {
     let bytes = value.as_i64().unwrap_or(0);
-    let result = if bytes < 1024 {
+    if bytes < 1024 {
         format!("{bytes} B")
     } else if bytes < 1024 * 1024 {
         format!("{:.0} KB", bytes as f64 / 1024.0)
     } else {
         format!("{:.1} MB", bytes as f64 / (1024.0 * 1024.0))
-    };
-    Ok(tera::Value::String(result))
+    }
 }
 
 #[cfg(test)]

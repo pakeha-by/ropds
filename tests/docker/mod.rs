@@ -126,8 +126,10 @@ auth_required = false
 /// Build an AppState with real Tera templates and translations.
 pub fn test_app_state(pool: DbPool, config: Config) -> AppState {
     let templates_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates/**/*.html");
-    let mut tera = tera::Tera::new(templates_dir.to_str().unwrap()).expect("templates should load");
+    let mut tera = tera::Tera::default();
     register_filters(&mut tera);
+    tera.load_from_glob(templates_dir.to_str().unwrap())
+        .expect("templates should load");
 
     let translations = i18n::load_runtime_translations().expect("translations should load");
 

@@ -12,7 +12,7 @@ tower = "0.5"
 tower-http = { version = "0.6.10", features = ["trace", "cors", "compression-gzip", "compression-br"] }
 
 # Templates
-tera = "1"
+tera = { version = "2", features = ["glob_fs"] }
 include_dir = "0.7"
 mime_guess = "2"
 
