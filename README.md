@@ -179,9 +179,9 @@ See [docker/README.md](docker/README.md) for the full deployment guide, includin
 
 ### Internationalization
 
-- Ships with **English** and **Russian** locales
+- Ships with **English**, **Russian**, **German**, and **Simplified Chinese** locales
 - Locale files are plain TOML in `locales/` — the file stem is the locale code (`en.toml` → `en`)
-- Genre names support per-language translations in the database
+- Genre names support per-language translations in the database — English, Russian, and Simplified Chinese names ship out of the box
 - Per-user language preference saved in a cookie
 
 #### Adding a new locale
@@ -213,7 +213,7 @@ All settings live in `config.toml`. See [config.toml.example](config.toml.exampl
 | `[database]` | Connection URL — `sqlite://`, `postgres://`, or `mysql://` |
 | `[opds]` | Catalog title, pagination, auth, alphabet drill-down mode (`alphabet_first_word_only`) |
 | `[scanner]` | Cron schedule, parallel workers, integrity checks |
-| `[web]` | Default language (`en`, `ru`), default theme (`light`, `dark`) |
+| `[web]` | Default language (`en`, `ru`, `de`, `zh`), default theme (`light`, `dark`) |
 | `[upload]` | Enable/disable uploads, staging directory, size limit |
 | `[reader]` | Enable/disable embedded reader, reading history size |
 | `[oauth]` | Provider credentials, moderation settings, Keycloak role mapping, notification toggle |
