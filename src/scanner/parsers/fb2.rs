@@ -1,8 +1,8 @@
 use std::io::BufRead;
 
 use base64::Engine;
-use quick_xml::Decoder;
 use quick_xml::XmlVersion;
+use quick_xml::encoding::DecodingReader;
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 
@@ -20,7 +20,7 @@ pub fn parse(mut reader: impl BufRead) -> Result<BookMeta, quick_xml::Error> {
     }
 
     let mut meta = BookMeta::default();
-    let mut xml = Reader::from_reader(std::io::Cursor::new(&raw_data));
+    let mut xml = Reader::from_reader(DecodingReader::new(std::io::Cursor::new(&raw_data)));
     xml.config_mut().trim_text(true);
     xml.config_mut().check_end_names = false;
     xml.config_mut().check_comments = false;
@@ -43,9 +43,16 @@ pub fn parse(mut reader: impl BufRead) -> Result<BookMeta, quick_xml::Error> {
             Ok(Event::Eof) => break,
             Err(_) => break, // Tolerate malformed XML, return partial metadata
 
+            // Non-UTF-8 documents (fb2 is often windows-1251) are transcoded on the fly
+            Ok(Event::Decl(ref e)) => {
+                if let Some(enc) = e.encoder() {
+                    xml.get_mut().set_encoding(enc);
+                }
+            }
+
             Ok(Event::Start(ref e)) => {
                 let local = local_name(e.name().as_ref());
-                handle_open_tag(&local, e, &path, &mut cover_ref, &mut meta, xml.decoder());
+                handle_open_tag(&local, e, &path, &mut cover_ref, &mut meta);
                 path.push(local);
 
                 if matches_path(&path, &["description", "title-info", "annotation"]) {
@@ -56,7 +63,7 @@ pub fn parse(mut reader: impl BufRead) -> Result<BookMeta, quick_xml::Error> {
             Ok(Event::Empty(ref e)) => {
                 let local = local_name(e.name().as_ref());
                 // Handle attributes but don't push to path (self-closing)
-                handle_open_tag(&local, e, &path, &mut cover_ref, &mut meta, xml.decoder());
+                handle_open_tag(&local, e, &path, &mut cover_ref, &mut meta);
             }
 
             Ok(Event::End(ref e)) => {
@@ -94,7 +101,7 @@ pub fn parse(mut reader: impl BufRead) -> Result<BookMeta, quick_xml::Error> {
             }
 
             Ok(Event::Text(ref e)) => {
-                let text = e.decode().unwrap_or_default();
+                let text = e.xml10_content();
 
                 if !description_done {
                     let tag = path.last().map(|s| s.as_str()).unwrap_or("");
@@ -230,16 +237,15 @@ fn handle_open_tag(
     path: &[String],
     cover_ref: &mut Option<String>,
     meta: &mut BookMeta,
-    decoder: Decoder,
 ) {
     // <sequence name="..." number="..."/>
     if local == "sequence"
         && matches_path_with(path, local, &["description", "title-info", "sequence"])
     {
         for attr in e.attributes().flatten() {
-            let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
+            let key = attr.key.as_ref();
             let val = attr
-                .decoded_and_normalized_value(XmlVersion::Implicit1_0, decoder)
+                .normalized_value(XmlVersion::Implicit1_0)
                 .unwrap_or_default();
             match key {
                 "name" => meta.series_title = Some(strip_meta(&val)),
@@ -258,10 +264,10 @@ fn handle_open_tag(
             || path.last().map(|s| s.as_str()) == Some("coverpage"))
     {
         for attr in e.attributes().flatten() {
-            let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
+            let key = attr.key.as_ref();
             if key.ends_with("href") {
                 let val = attr
-                    .decoded_and_normalized_value(XmlVersion::Implicit1_0, decoder)
+                    .normalized_value(XmlVersion::Implicit1_0)
                     .unwrap_or_default();
                 let id = val.trim_start_matches('#').to_lowercase();
                 if !id.is_empty() {
@@ -273,8 +279,7 @@ fn handle_open_tag(
 }
 
 /// Get the local name of an XML tag, stripping any namespace prefix.
-fn local_name(raw: &[u8]) -> String {
-    let s = std::str::from_utf8(raw).unwrap_or("");
+fn local_name(s: &str) -> String {
     match s.rfind(':') {
         Some(i) => s[i + 1..].to_lowercase(),
         None => s.to_lowercase(),
@@ -407,8 +412,8 @@ mod tests {
 
     #[test]
     fn test_local_and_path_helpers() {
-        assert_eq!(local_name(b"xlink:image"), "image");
-        assert_eq!(local_name(b"image"), "image");
+        assert_eq!(local_name("xlink:image"), "image");
+        assert_eq!(local_name("image"), "image");
 
         let path = vec![
             "description".to_string(),

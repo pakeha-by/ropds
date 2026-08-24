@@ -42,7 +42,7 @@ time = "0.3"
 walkdir = "2"
 zip = "8.6.0"
 dashmap = "6"
-quick-xml = { version = "0.41.0", features = ["encoding"] }
+quick-xml = { version = "0.42.0", features = ["encoding"] }
 encoding_rs = "0.8"
 base64 = "0.23"
 image = { version = "0.25.10", default-features = false, features = ["gif", "jpeg", "png", "pnm"] }
@@ -63,11 +63,11 @@ argon2 = "0.5"
 openidconnect = "4.0.1"
 oauth2         = "5.0"
 reqwest    = { version = "0.12.28", features = ["json", "rustls-tls"], default-features = false }
-lettre     = { version = "0.11.22", features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"], default-features = false }
+lettre     = { version = "0.11.23", features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder"], default-features = false }
 rand       = "0.10.2"
 
 # CLI
-clap = { version = "4.6.4", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 
 # Testcontainers (opt-in, for Docker-based integration tests)
 testcontainers-modules = { version = "0.15", optional = true, features = ["postgres", "mariadb"] }
@@ -84,11 +84,11 @@ http-body-util = "0.1"
 
 [build-dependencies]
 walkdir = "2"
-oxc_allocator = "0.142.0"
-oxc_codegen = "0.142.0"
-oxc_minifier = "0.142.0"
-oxc_parser = "0.142.0"
-oxc_span = "0.142.0"
+oxc_allocator = "0.146.0"
+oxc_codegen = "0.146.0"
+oxc_minifier = "0.146.0"
+oxc_parser = "0.146.0"
+oxc_span = "0.146.0"
 sha2 = "0.11"
 hex = "0.4"
 

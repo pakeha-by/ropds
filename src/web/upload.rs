@@ -53,10 +53,10 @@ async fn verify_upload_permission(state: &AppState, jar: &CookieJar) -> Result<i
 }
 
 /// Check upload permission for JSON API endpoints.
-async fn check_upload_permission(state: &AppState, jar: &CookieJar) -> Result<i64, Response> {
+async fn check_upload_permission(state: &AppState, jar: &CookieJar) -> Result<i64, Box<Response>> {
     verify_upload_permission(state, jar)
         .await
-        .map_err(|()| json_error(StatusCode::FORBIDDEN, "forbidden"))
+        .map_err(|()| Box::new(json_error(StatusCode::FORBIDDEN, "forbidden")))
 }
 
 // ---------------------------------------------------------------------------
@@ -375,7 +375,7 @@ pub async fn upload_file(
     // 1. Permission check
     let user_id = match check_upload_permission(&state, &jar).await {
         Ok(id) => id,
-        Err(r) => return r,
+        Err(r) => return *r,
     };
 
     let max_bytes = state.config.upload.max_upload_size_mb * 1024 * 1024;
@@ -627,7 +627,7 @@ pub async fn publish(
     // 1. Permission check
     let user_id = match check_upload_permission(&state, &jar).await {
         Ok(id) => id,
-        Err(r) => return r,
+        Err(r) => return *r,
     };
 
     // 2. CSRF check

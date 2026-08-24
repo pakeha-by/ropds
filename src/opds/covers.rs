@@ -231,29 +231,33 @@ fn find_epub_opf<R: std::io::Read + std::io::Seek>(
 
 fn parse_container_rootfile(data: &[u8]) -> Option<String> {
     use quick_xml::XmlVersion;
+    use quick_xml::encoding::DecodingReader;
     use quick_xml::events::Event;
     use quick_xml::reader::Reader;
 
-    let mut xml = Reader::from_reader(data);
+    let mut xml = Reader::from_reader(DecodingReader::new(data));
     xml.config_mut().trim_text(true);
     let mut buf = Vec::new();
     loop {
         match xml.read_event_into(&mut buf) {
             Ok(Event::Eof) | Err(_) => break,
+            // Non-UTF-8 documents (fb2 is often windows-1251) are transcoded on the fly
+            Ok(Event::Decl(ref e)) => {
+                if let Some(enc) = e.encoder() {
+                    xml.get_mut().set_encoding(enc);
+                }
+            }
             Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
                 let qname = e.name();
-                let name = std::str::from_utf8(qname.as_ref()).unwrap_or("");
+                let name = qname.as_ref();
                 if name.ends_with("rootfile") || name == "rootfile" {
                     for attr in e.attributes().flatten() {
-                        let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
+                        let key = attr.key.as_ref();
                         if key == "full-path" {
                             return Some(
-                                attr.decoded_and_normalized_value(
-                                    XmlVersion::Implicit1_0,
-                                    xml.decoder(),
-                                )
-                                .unwrap_or_default()
-                                .to_string(),
+                                attr.normalized_value(XmlVersion::Implicit1_0)
+                                    .unwrap_or_default()
+                                    .to_string(),
                             );
                         }
                     }
@@ -272,6 +276,7 @@ fn extract_epub_cover<R: std::io::Read + std::io::Seek>(
     archive: &mut zip::ZipArchive<R>,
 ) -> Option<(Vec<u8>, String)> {
     use quick_xml::XmlVersion;
+    use quick_xml::encoding::DecodingReader;
     use quick_xml::events::Event;
     use quick_xml::reader::Reader;
 
@@ -283,12 +288,18 @@ fn extract_epub_cover<R: std::io::Read + std::io::Seek>(
     let mut cover_id: Option<String> = None;
     let mut manifest: Vec<(String, String, String, String)> = Vec::new(); // (id, href, media_type, properties)
 
-    let mut xml = Reader::from_reader(opf_data);
+    let mut xml = Reader::from_reader(DecodingReader::new(opf_data));
     xml.config_mut().trim_text(true);
     let mut buf = Vec::new();
     loop {
         match xml.read_event_into(&mut buf) {
             Ok(Event::Eof) | Err(_) => break,
+            // Non-UTF-8 documents (fb2 is often windows-1251) are transcoded on the fly
+            Ok(Event::Decl(ref e)) => {
+                if let Some(enc) = e.encoder() {
+                    xml.get_mut().set_encoding(enc);
+                }
+            }
             Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
                 let local = local_name(e.name().as_ref());
                 if local == "item" {
@@ -297,9 +308,9 @@ fn extract_epub_cover<R: std::io::Read + std::io::Seek>(
                     let mut media_type = String::new();
                     let mut properties = String::new();
                     for attr in e.attributes().flatten() {
-                        let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
+                        let key = attr.key.as_ref();
                         let val = attr
-                            .decoded_and_normalized_value(XmlVersion::Implicit1_0, xml.decoder())
+                            .normalized_value(XmlVersion::Implicit1_0)
                             .unwrap_or_default();
                         match key {
                             "id" => id = val.to_string(),
@@ -315,9 +326,9 @@ fn extract_epub_cover<R: std::io::Read + std::io::Seek>(
                     let mut name_attr = String::new();
                     let mut content_attr = String::new();
                     for attr in e.attributes().flatten() {
-                        let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
+                        let key = attr.key.as_ref();
                         let val = attr
-                            .decoded_and_normalized_value(XmlVersion::Implicit1_0, xml.decoder())
+                            .normalized_value(XmlVersion::Implicit1_0)
                             .unwrap_or_default();
                         match key {
                             "name" => name_attr = val.to_string(),
@@ -370,8 +381,7 @@ fn extract_epub_cover<R: std::io::Read + std::io::Seek>(
     None
 }
 
-fn local_name(raw: &[u8]) -> String {
-    let s = std::str::from_utf8(raw).unwrap_or("");
+fn local_name(s: &str) -> String {
     match s.rfind(':') {
         Some(i) => s[i + 1..].to_lowercase(),
         None => s.to_lowercase(),
@@ -552,8 +562,8 @@ mod tests {
         );
         assert_eq!(parse_container_rootfile(b"<container/>"), None);
 
-        assert_eq!(local_name(b"opf:item"), "item");
-        assert_eq!(local_name(b"item"), "item");
+        assert_eq!(local_name("opf:item"), "item");
+        assert_eq!(local_name("item"), "item");
         assert_eq!(resolve_path("OPS/", "images/c.jpg"), "OPS/images/c.jpg");
         assert_eq!(resolve_path("OPS/", "/images/c.jpg"), "images/c.jpg");
     }

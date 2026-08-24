@@ -1,7 +1,7 @@
 use std::io::{Read, Seek};
 
-use quick_xml::Decoder;
 use quick_xml::XmlVersion;
+use quick_xml::encoding::DecodingReader;
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 
@@ -56,7 +56,7 @@ fn find_opf_path<R: Read + Seek>(archive: &mut zip::ZipArchive<R>) -> Result<Str
 /// If there is only one rootfile, return it regardless of media-type.
 /// If there are several, return the first one with media-type="application/oebps-package+xml".
 fn parse_container_xml(data: &[u8]) -> Option<String> {
-    let mut xml = Reader::from_reader(data);
+    let mut xml = Reader::from_reader(DecodingReader::new(data));
     xml.config_mut().trim_text(true);
     let mut buf = Vec::new();
     let mut rootfiles: Vec<(String, bool)> = Vec::new();
@@ -64,15 +64,21 @@ fn parse_container_xml(data: &[u8]) -> Option<String> {
     loop {
         match xml.read_event_into(&mut buf) {
             Ok(Event::Eof) | Err(_) => break,
+            // Non-UTF-8 documents (fb2 is often windows-1251) are transcoded on the fly
+            Ok(Event::Decl(ref e)) => {
+                if let Some(enc) = e.encoder() {
+                    xml.get_mut().set_encoding(enc);
+                }
+            }
             Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
                 let local = local_name(e.name().as_ref());
                 if local == "rootfile" {
                     let mut full_path = None;
                     let mut is_opf = false;
                     for attr in e.attributes().flatten() {
-                        let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
+                        let key = attr.key.as_ref();
                         let val = attr
-                            .decoded_and_normalized_value(XmlVersion::Implicit1_0, xml.decoder())
+                            .normalized_value(XmlVersion::Implicit1_0)
                             .unwrap_or_default();
                         if key == "full-path" {
                             full_path = Some(val.to_string());
@@ -104,7 +110,7 @@ fn parse_container_xml(data: &[u8]) -> Option<String> {
 /// Parse OPF XML and extract book metadata.
 fn parse_opf(data: &[u8]) -> Result<BookMeta, EpubError> {
     let mut meta = BookMeta::default();
-    let mut xml = Reader::from_reader(data);
+    let mut xml = Reader::from_reader(DecodingReader::new(data));
     xml.config_mut().trim_text(true);
     let mut buf = Vec::new();
     let mut path: Vec<String> = Vec::new();
@@ -118,17 +124,23 @@ fn parse_opf(data: &[u8]) -> Result<BookMeta, EpubError> {
     loop {
         match xml.read_event_into(&mut buf) {
             Ok(Event::Eof) | Err(_) => break,
+            // Non-UTF-8 documents (fb2 is often windows-1251) are transcoded on the fly
+            Ok(Event::Decl(ref e)) => {
+                if let Some(enc) = e.encoder() {
+                    xml.get_mut().set_encoding(enc);
+                }
+            }
 
             Ok(Event::Start(ref e)) => {
                 let local = local_name(e.name().as_ref());
-                handle_opf_open(&local, e, &mut meta, &mut creator_role, xml.decoder());
+                handle_opf_open(&local, e, &mut meta, &mut creator_role);
                 path.push(local);
                 current_text.clear();
             }
 
             Ok(Event::Empty(ref e)) => {
                 let local = local_name(e.name().as_ref());
-                handle_opf_open(&local, e, &mut meta, &mut creator_role, xml.decoder());
+                handle_opf_open(&local, e, &mut meta, &mut creator_role);
                 // Self-closing: don't push to path
             }
 
@@ -174,9 +186,7 @@ fn parse_opf(data: &[u8]) -> Result<BookMeta, EpubError> {
             }
 
             Ok(Event::Text(ref e)) => {
-                if let Ok(text) = e.decode() {
-                    current_text.push_str(&text);
-                }
+                current_text.push_str(&e.xml10_content());
             }
 
             _ => {}
@@ -255,13 +265,19 @@ fn parse_opf_manifest(data: &[u8]) -> (Vec<ManifestItem>, Option<String>) {
     let mut items = Vec::new();
     let mut cover_id = None;
 
-    let mut xml = Reader::from_reader(data);
+    let mut xml = Reader::from_reader(DecodingReader::new(data));
     xml.config_mut().trim_text(true);
     let mut buf = Vec::new();
 
     loop {
         match xml.read_event_into(&mut buf) {
             Ok(Event::Eof) | Err(_) => break,
+            // Non-UTF-8 documents (fb2 is often windows-1251) are transcoded on the fly
+            Ok(Event::Decl(ref e)) => {
+                if let Some(enc) = e.encoder() {
+                    xml.get_mut().set_encoding(enc);
+                }
+            }
             Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
                 let local = local_name(e.name().as_ref());
                 if local == "item" {
@@ -270,9 +286,9 @@ fn parse_opf_manifest(data: &[u8]) -> (Vec<ManifestItem>, Option<String>) {
                     let mut media_type = String::new();
                     let mut properties = String::new();
                     for attr in e.attributes().flatten() {
-                        let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
+                        let key = attr.key.as_ref();
                         let val = attr
-                            .decoded_and_normalized_value(XmlVersion::Implicit1_0, xml.decoder())
+                            .normalized_value(XmlVersion::Implicit1_0)
                             .unwrap_or_default();
                         match key {
                             "id" => id = val.to_string(),
@@ -293,9 +309,9 @@ fn parse_opf_manifest(data: &[u8]) -> (Vec<ManifestItem>, Option<String>) {
                     let mut name_attr = String::new();
                     let mut content_attr = String::new();
                     for attr in e.attributes().flatten() {
-                        let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
+                        let key = attr.key.as_ref();
                         let val = attr
-                            .decoded_and_normalized_value(XmlVersion::Implicit1_0, xml.decoder())
+                            .normalized_value(XmlVersion::Implicit1_0)
                             .unwrap_or_default();
                         match key {
                             "name" => name_attr = val.to_string(),
@@ -322,15 +338,14 @@ fn handle_opf_open(
     e: &quick_xml::events::BytesStart<'_>,
     meta: &mut BookMeta,
     creator_role: &mut Option<String>,
-    decoder: Decoder,
 ) {
     if local == "meta" {
         let mut name_attr = String::new();
         let mut content_attr = String::new();
         for attr in e.attributes().flatten() {
-            let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
+            let key = attr.key.as_ref();
             let val = attr
-                .decoded_and_normalized_value(XmlVersion::Implicit1_0, decoder)
+                .normalized_value(XmlVersion::Implicit1_0)
                 .unwrap_or_default();
             match key {
                 "name" => name_attr = val.to_string(),
@@ -352,9 +367,9 @@ fn handle_opf_open(
     if local == "creator" {
         *creator_role = None;
         for attr in e.attributes().flatten() {
-            let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
+            let key = attr.key.as_ref();
             let val = attr
-                .decoded_and_normalized_value(XmlVersion::Implicit1_0, decoder)
+                .normalized_value(XmlVersion::Implicit1_0)
                 .unwrap_or_default();
             if key == "role" || key.ends_with(":role") {
                 *creator_role = Some(val.to_string());
@@ -371,8 +386,7 @@ fn resolve_path(base_dir: &str, href: &str) -> String {
     }
 }
 
-fn local_name(raw: &[u8]) -> String {
-    let s = std::str::from_utf8(raw).unwrap_or("");
+fn local_name(s: &str) -> String {
     match s.rfind(':') {
         Some(i) => s[i + 1..].to_lowercase(),
         None => s.to_lowercase(),
@@ -519,8 +533,8 @@ mod tests {
     fn test_helper_functions() {
         assert_eq!(resolve_path("OPS/", "img/c.jpg"), "OPS/img/c.jpg");
         assert_eq!(resolve_path("OPS/", "/img/c.jpg"), "img/c.jpg");
-        assert_eq!(local_name(b"dc:title"), "title");
-        assert_eq!(local_name(b"title"), "title");
+        assert_eq!(local_name("dc:title"), "title");
+        assert_eq!(local_name("title"), "title");
         assert!(path_in_metadata(&[
             "package".to_string(),
             "metadata".to_string(),
