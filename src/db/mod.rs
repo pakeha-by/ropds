@@ -447,6 +447,25 @@ mod tests {
         assert_eq!(row.1, "hello");
     }
 
+    #[tokio::test]
+    async fn test_chinese_genre_translations_seeded_for_sqlite() {
+        let pool = create_test_pool().await;
+
+        let section_count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM genre_section_translations WHERE lang = 'zh'")
+                .fetch_one(pool.inner())
+                .await
+                .unwrap();
+        assert_eq!(section_count.0, 22);
+
+        let genre_count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM genre_translations WHERE lang = 'zh'")
+                .fetch_one(pool.inner())
+                .await
+                .unwrap();
+        assert_eq!(genre_count.0, 228);
+    }
+
     #[test]
     fn test_rewrite_placeholders_sqlite() {
         let sql = "SELECT * FROM foo WHERE id = ? AND name = ?";

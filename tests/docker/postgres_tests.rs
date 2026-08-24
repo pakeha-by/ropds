@@ -7,7 +7,7 @@ use ropds::scanner;
 // Migration & schema tests
 // ---------------------------------------------------------------------------
 
-/// Verify that PG migrations run and seed the 228 built-in genres.
+/// Verify that PG migrations run and seed built-in genres and Chinese translations.
 #[tokio::test]
 async fn pg_migrations_run_successfully() {
     let (_container, pool) = start_postgres().await;
@@ -16,6 +16,20 @@ async fn pg_migrations_run_successfully() {
         .await
         .unwrap();
     assert_eq!(row.0, 228); // 228 seeded genres
+
+    let section_count: (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM genre_section_translations WHERE lang = 'zh'")
+            .fetch_one(pool.inner())
+            .await
+            .unwrap();
+    assert_eq!(section_count.0, 22);
+
+    let genre_count: (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM genre_translations WHERE lang = 'zh'")
+            .fetch_one(pool.inner())
+            .await
+            .unwrap();
+    assert_eq!(genre_count.0, 228);
 }
 
 /// CURRENT_TIMESTAMP default produces a non-empty TEXT value on PG.
