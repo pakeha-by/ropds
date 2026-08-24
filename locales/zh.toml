@@ -81,7 +81,7 @@ other = "其他"
 total = "总计"
 
 [genre]
-sections = "分类分区"
+sections = "分类大类"
 
 [theme]
 light = "浅色"
@@ -89,10 +89,10 @@ dark = "深色"
 toggle = "切换主题"
 
 [lang]
-en = "英语"
-ru = "俄语"
-de = "德语"
-zh = "简体中文"
+en = "English"
+ru = "Русский"
+de = "Deutsch"
+zh = "中文"
 switch = "语言"
 
 [opds]
@@ -111,7 +111,7 @@ root_content_series = "按系列浏览"
 root_content_title = "按书名浏览"
 root_content_recent = "浏览最近扫描的书籍"
 root_content_language_facets = "切换 OPDS 语言筛选"
-books_read_prefix = "已阅读"
+books_read_prefix = "已读书籍"
 facet_title = "语言"
 facet_browse_catalog_in = "浏览 OPDS 目录："
 
@@ -202,7 +202,7 @@ scanning = "正在扫描…"
 success_scan_started = "书库扫描已开始。"
 scan_complete = "扫描完成"
 scan_added = "新增"
-scan_deleted = "删除"
+scan_deleted = "已删除"
 scan_errors = "错误"
 scan_failed = "扫描失败"
 error_scan_already_running = "扫描已在进行中。"
