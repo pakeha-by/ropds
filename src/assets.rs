@@ -45,20 +45,24 @@ struct EmbeddedStaticFile {
 
 #[cfg(debug_assertions)]
 pub fn load_templates() -> Result<tera::Tera, tera::Error> {
-    tera::Tera::new("templates/**/*.html")
+    let mut tera = tera::Tera::default();
+    crate::web::context::register_filters(&mut tera);
+    tera.load_from_glob("templates/**/*.html")?;
+    Ok(tera)
 }
 
 #[cfg(not(debug_assertions))]
 pub fn load_templates() -> Result<tera::Tera, tera::Error> {
     let templates_dir = EMBEDDED_ASSETS
         .get_dir("templates")
-        .ok_or_else(|| tera::Error::msg("embedded templates directory is missing"))?;
+        .ok_or_else(|| tera::Error::message("embedded templates directory is missing"))?;
 
     let mut templates = Vec::new();
     collect_templates(templates_dir, "", &mut templates)?;
     templates.sort_by(|a, b| a.0.cmp(&b.0));
 
     let mut tera = tera::Tera::default();
+    crate::web::context::register_filters(&mut tera);
     let refs: Vec<(&str, &str)> = templates
         .iter()
         .map(|(name, content)| (name.as_str(), content.as_str()))
@@ -78,7 +82,7 @@ fn collect_templates(
             .path()
             .file_name()
             .and_then(|name| name.to_str())
-            .ok_or_else(|| tera::Error::msg("embedded template has invalid UTF-8 file name"))?;
+            .ok_or_else(|| tera::Error::message("embedded template has invalid UTF-8 file name"))?;
 
         let template_name = if prefix.is_empty() {
             file_name.to_string()
@@ -87,7 +91,9 @@ fn collect_templates(
         };
 
         let content = std::str::from_utf8(file.contents())
-            .map_err(|e| tera::Error::msg(format!("template {template_name} is not UTF-8: {e}")))?
+            .map_err(|e| {
+                tera::Error::message(format!("template {template_name} is not UTF-8: {e}"))
+            })?
             .to_string();
         out.push((template_name, content));
     }
@@ -97,7 +103,7 @@ fn collect_templates(
             .path()
             .file_name()
             .and_then(|name| name.to_str())
-            .ok_or_else(|| tera::Error::msg("embedded template dir has invalid UTF-8 name"))?;
+            .ok_or_else(|| tera::Error::message("embedded template dir has invalid UTF-8 name"))?;
         let child_prefix = if prefix.is_empty() {
             child_name.to_string()
         } else {
